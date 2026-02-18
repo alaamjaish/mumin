@@ -3,7 +3,7 @@ import { generateAdImages } from "@/lib/nano-banana";
 import { AD_STYLES } from "@/lib/styles";
 
 const MAX_COUNT_PER_STYLE = 10;
-const MAX_TOTAL_IMAGES_PER_REQUEST = 6;
+const MAX_TOTAL_IMAGES_PER_REQUEST = 30;
 
 export const runtime = "nodejs";
 export const maxDuration = 300;

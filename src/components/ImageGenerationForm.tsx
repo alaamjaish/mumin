@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { StyleSelector } from "./StyleSelector";
 
-const MAX_TOTAL_IMAGES_PER_REQUEST = 6;
+const MAX_TOTAL_IMAGES_PER_REQUEST = 30;
 const REQUEST_TIMEOUT_MS = 180_000;
 const NETWORK_RETRY_COUNT = 1;
 
