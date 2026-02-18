@@ -1,0 +1,343 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════
+   MUMIN — Warm Modernism Design System
+   Arabic warmth × Scandinavian precision × Modern craft
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* Warm canvas */
+  --bg-deep: #F9F7F4;
+  --bg-base: #FBF9F7;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-hover: #F4F0EB;
+  --bg-inset: #F3EFE9;
+
+  /* Coral terracotta — primary accent */
+  --coral-50: #FEF5F2;
+  --coral-100: #FDE8E1;
+  --coral-200: #FACEBE;
+  --coral-300: #F4A68D;
+  --coral-400: #E8654A;
+  --coral-500: #D94F33;
+  --coral-600: #B83D24;
+
+  /* Deep navy — secondary accent */
+  --navy-50: #EFF1F8;
+  --navy-100: #D6DAE9;
+  --navy-200: #A8B0CC;
+  --navy-300: #6A77A0;
+  --navy-400: #3E4F82;
+  --navy-500: #2C3E6B;
+  --navy-600: #1D2A4E;
+
+  /* Rich teal — success/approve */
+  --teal-50: #EEFAF5;
+  --teal-100: #C7EFE0;
+  --teal-300: #5BC4A2;
+  --teal-400: #3A9B7A;
+  --teal-500: #2C7A5F;
+
+  /* Warm neutrals (brown undertone) */
+  --gray-50: #FAFAF8;
+  --gray-100: #F2EFEB;
+  --gray-200: #E3DED7;
+  --gray-300: #C4BDB3;
+  --gray-400: #A09789;
+  --gray-500: #7D7468;
+  --gray-600: #5C554B;
+  --gray-700: #3D3832;
+  --gray-800: #2A2520;
+  --gray-900: #1A1613;
+
+  /* Semantic */
+  --success: #3A9B7A;
+  --error: #D94F33;
+  --warning: #E09B3D;
+
+  /* Typography */
+  --font-display: 'Syne', sans-serif;
+  --font-arabic: 'Tajawal', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(26,22,19,0.04);
+  --shadow-sm: 0 1px 3px rgba(26,22,19,0.06), 0 1px 2px rgba(26,22,19,0.04);
+  --shadow-md: 0 4px 12px rgba(26,22,19,0.07), 0 1px 3px rgba(26,22,19,0.04);
+  --shadow-lg: 0 8px 30px rgba(26,22,19,0.09), 0 2px 6px rgba(26,22,19,0.04);
+  --shadow-xl: 0 16px 50px rgba(26,22,19,0.12), 0 4px 12px rgba(26,22,19,0.05);
+  --shadow-coral: 0 8px 30px rgba(232,101,74,0.18), 0 2px 6px rgba(232,101,74,0.08);
+  --shadow-teal: 0 8px 30px rgba(58,155,122,0.18), 0 2px 6px rgba(58,155,122,0.08);
+}
+
+/* ═══ Base ═══ */
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-arabic);
+  background: var(--bg-deep);
+  color: var(--gray-800);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.75;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ═══ Scrollbar ═══ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--coral-400); }
+
+/* ═══ Selection & Focus ═══ */
+::selection {
+  background: rgba(232,101,74,0.14);
+  color: var(--gray-900);
+}
+
+:focus-visible {
+  outline: 2px solid var(--coral-400);
+  outline-offset: 2px;
+}
+
+/* ═══ Animations ═══ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulseRing {
+  0% { box-shadow: 0 0 0 0 rgba(232,101,74,0.25); }
+  70% { box-shadow: 0 0 0 8px rgba(232,101,74,0); }
+  100% { box-shadow: 0 0 0 0 rgba(232,101,74,0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-1 { animation-delay: 0.06s; }
+.stagger-2 { animation-delay: 0.12s; }
+.stagger-3 { animation-delay: 0.18s; }
+.stagger-4 { animation-delay: 0.24s; }
+.stagger-5 { animation-delay: 0.30s; }
+
+/* ═══ Card ═══ */
+.glass-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--gray-300);
+}
+
+/* ═══ Gradient text ═══ */
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--coral-500), var(--coral-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══ Divider ═══ */
+.gold-line {
+  height: 1px;
+  background: var(--gray-200);
+}
+
+/* ═══ Input ═══ */
+.input-luxury {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  color: var(--gray-800);
+  font-family: var(--font-arabic);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.input-luxury::placeholder {
+  color: var(--gray-400);
+  font-weight: 300;
+}
+
+.input-luxury:hover {
+  border-color: var(--gray-300);
+}
+
+.input-luxury:focus {
+  border-color: var(--coral-400);
+  box-shadow: 0 0 0 4px rgba(232,101,74,0.08);
+  outline: none;
+}
+
+/* ═══ Button: Primary (Coral) ═══ */
+.btn-gold {
+  background: var(--coral-400);
+  color: #FFFFFF;
+  font-family: var(--font-arabic);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-gold::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--coral-500);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.btn-gold:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-coral);
+}
+
+.btn-gold:hover::before { opacity: 1; }
+.btn-gold:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+
+.btn-gold:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+.btn-gold:disabled::before { display: none; }
+
+.btn-gold span, .btn-gold svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══ Button: Ghost ═══ */
+.btn-ghost {
+  background: transparent;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  color: var(--gray-700);
+  font-family: var(--font-arabic);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-ghost:hover {
+  background: var(--coral-50);
+  border-color: var(--coral-300);
+  color: var(--coral-500);
+}
+
+/* ═══ Button: Secondary (Navy/Teal) ═══ */
+.btn-teal {
+  background: var(--navy-500);
+  color: #FFFFFF;
+  font-family: var(--font-arabic);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-teal:hover {
+  background: var(--navy-400);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(44,62,107,0.2);
+}
+
+/* ═══ Shimmer ═══ */
+.shimmer-loading {
+  background: linear-gradient(90deg, transparent, rgba(232,101,74,0.06), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ═══ Calligraphy accent ═══ */
+.calligraphy-accent::before {
+  content: '﷽';
+  position: absolute;
+  font-size: 10rem;
+  opacity: 0.02;
+  color: var(--coral-400);
+  pointer-events: none;
+  font-family: var(--font-arabic);
+  top: -2rem;
+  right: -2rem;
+}
+
+/* ═══ Scroll snap for horizontal cards ═══ */
+.snap-scroll {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-scroll > * {
+  scroll-snap-align: start;
+}
