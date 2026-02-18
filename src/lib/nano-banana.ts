@@ -1,7 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 import { buildImagePrompt } from "./prompts";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY! });
+let _ai: GoogleGenAI | null = null;
+function getAI() {
+  if (!_ai) {
+    _ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY! });
+  }
+  return _ai;
+}
 
 export async function generateAdImage(
   russianText: string,
@@ -10,7 +16,7 @@ export async function generateAdImage(
 ): Promise<string> {
   const prompt = buildImagePrompt(russianText, styleModifier, visualInstructions);
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: "gemini-3-pro-image-preview",
     contents: prompt,
     config: {
