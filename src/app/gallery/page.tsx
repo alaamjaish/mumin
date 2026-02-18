@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { ImageGrid } from "@/components/ImageGrid";
 import { createClient } from "@/lib/supabase/client";
@@ -22,7 +22,6 @@ function isExternalUrl(value: string) {
 
 export default function GalleryPage() {
   const ctx = useAppContext();
-  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     if (ctx.galleryLoaded) return;
@@ -32,6 +31,7 @@ export default function GalleryPage() {
       ctx.setGalleryError("");
 
       try {
+        const supabase = createClient();
         const localImages = readLocalGalleryImages();
         const {
           data: { user },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAppContext } from "@/components/AppProvider";
 import { TextGenerationForm } from "@/components/TextGenerationForm";
@@ -54,7 +54,6 @@ export default function AdPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [pageError, setPageError] = useState("");
 
-  const supabase = useMemo(() => createClient(), []);
   const imagesRef = useRef<GalleryImageItem[]>(adImages);
   useEffect(() => { imagesRef.current = adImages; }, [adImages]);
 
@@ -101,6 +100,7 @@ export default function AdPage() {
 
       const signedUrlByPath = new Map<string, string>();
       if (storagePaths.length > 0) {
+        const supabase = createClient();
         const { data: signedRows } = await supabase.storage
           .from("generated-images")
           .createSignedUrls(storagePaths, 60 * 60);
@@ -130,7 +130,7 @@ export default function AdPage() {
     } finally {
       setPageLoading(false);
     }
-  }, [adId, supabase]);
+  }, [adId]);
 
   const dataLoadedRef = useRef(false);
 

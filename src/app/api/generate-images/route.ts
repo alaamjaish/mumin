@@ -40,11 +40,12 @@ export async function POST(request: NextRequest) {
     const allImages: { style: string; url: string }[] = [];
     const styleErrors: { style: string; message: string }[] = [];
 
-    for (const styleId of validStyles) {
-      const style = AD_STYLES.find((s) => s.id === styleId);
-      if (!style) continue;
+    // Fire ALL styles in parallel — each style batch is itself parallel internally.
+    const styleResults = await Promise.allSettled(
+      validStyles.map(async (styleId) => {
+        const style = AD_STYLES.find((s) => s.id === styleId);
+        if (!style) return;
 
-      try {
         const images = await generateAdImages(
           russian_text,
           style.prompt_modifier,
@@ -55,10 +56,16 @@ export async function POST(request: NextRequest) {
         for (const url of images) {
           allImages.push({ style: styleId, url });
         }
-      } catch (error) {
+      })
+    );
+
+    // Collect errors from rejected styles
+    for (let i = 0; i < styleResults.length; i++) {
+      const result = styleResults[i];
+      if (result.status === "rejected") {
         styleErrors.push({
-          style: styleId,
-          message: error instanceof Error ? error.message : "Unknown generation error",
+          style: validStyles[i],
+          message: result.reason instanceof Error ? result.reason.message : "Unknown generation error",
         });
       }
     }

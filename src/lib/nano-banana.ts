@@ -41,21 +41,16 @@ export async function generateAdImages(
   count: number,
   visualInstructions: string = ""
 ): Promise<string[]> {
-  const images: string[] = [];
+  // Fire all API calls in parallel for maximum speed.
+  const results = await Promise.allSettled(
+    Array.from({ length: count }, () =>
+      generateAdImage(russianText, styleModifier, visualInstructions)
+    )
+  );
 
-  // Run sequentially to reduce memory spikes and avoid socket resets on heavy batches.
-  for (let i = 0; i < count; i += 1) {
-    try {
-      const image = await generateAdImage(
-        russianText,
-        styleModifier,
-        visualInstructions
-      );
-      images.push(image);
-    } catch {
-      // Continue collecting partial successes.
-    }
-  }
+  const images = results
+    .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+    .map((r) => r.value);
 
   if (images.length === 0) {
     throw new Error("Failed to generate any images");
