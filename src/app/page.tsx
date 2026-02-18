@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/components/AppProvider";
 import { AdGrid } from "@/components/AdGrid";
+import { CreateAdDialog } from "@/components/CreateAdDialog";
 import { fetchAds } from "@/lib/supabase/queries";
 import { Ad } from "@/types";
 
@@ -13,6 +14,7 @@ export default function DashboardPage() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
   const loadAds = useCallback(async () => {
     setLoading(true);
@@ -56,13 +58,41 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-fade-in-up">
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold mb-1.5" style={{ color: "var(--gray-900)" }}>
-          مولد الإعلانات
-        </h1>
-        <p className="text-sm" style={{ color: "var(--gray-500)" }}>
-          أنشئ إعلانات جديدة أو تابع العمل على إعلانات سابقة
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold mb-1.5" style={{ color: "var(--gray-900)" }}>
+            مولد الإعلانات
+          </h1>
+          <p className="text-sm" style={{ color: "var(--gray-500)" }}>
+            أنشئ إعلانات جديدة أو تابع العمل على إعلانات سابقة
+          </p>
+        </div>
+
+        {/* Small add button */}
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-600 transition-all duration-200"
+          style={{
+            background: "rgba(200, 50, 40, 0.08)",
+            color: "#c83228",
+            border: "1px solid rgba(200, 50, 40, 0.15)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(200, 50, 40, 0.15)";
+            e.currentTarget.style.borderColor = "rgba(200, 50, 40, 0.25)";
+            e.currentTarget.style.transform = "translateY(-1px)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(200, 50, 40, 0.08)";
+            e.currentTarget.style.borderColor = "rgba(200, 50, 40, 0.15)";
+            e.currentTarget.style.transform = "translateY(0)";
+          }}
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          إعلان جديد
+        </button>
       </div>
 
       {/* Error */}
@@ -91,6 +121,15 @@ export default function DashboardPage() {
 
       {/* Ad Grid */}
       {!loading && <AdGrid ads={ads} onRefresh={loadAds} />}
+
+      {/* Create Ad Dialog */}
+      {showCreate && (
+        <CreateAdDialog
+          onClose={() => setShowCreate(false)}
+          onCreated={loadAds}
+        />
+      )}
     </div>
   );
 }
+

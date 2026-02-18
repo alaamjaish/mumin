@@ -19,6 +19,7 @@ import {
   saveImageToCloud,
 } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/client";
+import { upsertLocalGalleryImage } from "@/lib/gallery-storage";
 import type { Ad, AdCopyBatch, TextGenerationInput, TextGenerationOutput, GalleryImageItem } from "@/types";
 
 function isExternalUrl(value: string) {
@@ -46,6 +47,8 @@ export default function AdPage() {
   const [overrideGlobal, setOverrideGlobal] = useState(false);
   const [cloudSavingIds, setCloudSavingIds] = useState<Set<string>>(new Set());
   const [saveError, setSaveError] = useState("");
+  const [isSavingAllLocal, setIsSavingAllLocal] = useState(false);
+  const [isSavingAllCloud, setIsSavingAllCloud] = useState(false);
 
   // Loading
   const [pageLoading, setPageLoading] = useState(true);
@@ -277,6 +280,64 @@ export default function AdPage() {
     }
   }
 
+  // Save All locally
+  function handleSaveAllLocal() {
+    setIsSavingAllLocal(true);
+    try {
+      const unsaved = imagesRef.current.filter((img) => !img.isLocalSaved);
+      for (const img of unsaved) {
+        upsertLocalGalleryImage({ ...img, isLocalSaved: true });
+      }
+      setAdImages((prev) =>
+        prev.map((img) => (img.isLocalSaved ? img : { ...img, isLocalSaved: true }))
+      );
+      invalidateGallery();
+    } finally {
+      setIsSavingAllLocal(false);
+    }
+  }
+
+  // Save All to cloud
+  async function handleSaveAllCloud() {
+    const unsaved = imagesRef.current.filter((img) => !img.isCloudSaved);
+    if (unsaved.length === 0) return;
+
+    setIsSavingAllCloud(true);
+    setSaveError("");
+
+    try {
+      for (const img of unsaved) {
+        setCloudSavingIds((prev) => new Set(prev).add(img.id));
+        try {
+          const { id, storagePath } = await saveImageToCloud(
+            adId,
+            img.style,
+            img.url,
+            img.generationId ?? undefined
+          );
+          setAdImages((prev) =>
+            prev.map((i) =>
+              i.id === img.id
+                ? { ...i, isCloudSaved: true, cloudImageId: id, cloudStoragePath: storagePath }
+                : i
+            )
+          );
+        } catch (err) {
+          setSaveError(err instanceof Error ? err.message : "Failed to save image to cloud.");
+        } finally {
+          setCloudSavingIds((prev) => {
+            const next = new Set(prev);
+            next.delete(img.id);
+            return next;
+          });
+        }
+      }
+      invalidateGallery();
+    } finally {
+      setIsSavingAllCloud(false);
+    }
+  }
+
   if (userLoading || pageLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -426,7 +487,11 @@ export default function AdPage() {
               <ImageGrid
                 images={adImages}
                 onSaveCloud={handleSaveCloud}
+                onSaveAllLocal={handleSaveAllLocal}
+                onSaveAllCloud={handleSaveAllCloud}
                 cloudSavingIds={cloudSavingIds}
+                isSavingAllLocal={isSavingAllLocal}
+                isSavingAllCloud={isSavingAllCloud}
               />
             </div>
           )}

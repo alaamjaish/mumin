@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Ad } from "@/types";
-import { CreateAdDialog } from "./CreateAdDialog";
 import { DeleteAdDialog } from "./DeleteAdDialog";
 
 interface Props {
@@ -12,13 +11,11 @@ interface Props {
 }
 
 export function AdGrid({ ads, onRefresh }: Props) {
-  const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Ad | null>(null);
 
   return (
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {/* Existing ad cards */}
         {ads.map((ad, i) => (
           <div
             key={ad.id}
@@ -68,48 +65,7 @@ export function AdGrid({ ads, onRefresh }: Props) {
             </button>
           </div>
         ))}
-
-        {/* Create new ad card */}
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex min-h-[120px] items-center justify-center rounded-2xl transition-all duration-300 animate-fade-in-up"
-          style={{
-            animationDelay: `${ads.length * 0.05}s`,
-            opacity: 0,
-            border: "2px dashed var(--gray-200)",
-            background: "var(--bg-surface)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--coral-300)";
-            e.currentTarget.style.background = "var(--coral-50)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--gray-200)";
-            e.currentTarget.style.background = "var(--bg-surface)";
-          }}
-        >
-          <div className="text-center">
-            <div
-              className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{ background: "var(--gray-100)" }}
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="var(--gray-400)" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-            <span className="text-sm font-500" style={{ color: "var(--gray-500)" }}>
-              إعلان جديد
-            </span>
-          </div>
-        </button>
       </div>
-
-      {showCreate && (
-        <CreateAdDialog
-          onClose={() => setShowCreate(false)}
-          onCreated={onRefresh}
-        />
-      )}
 
       {deleteTarget && (
         <DeleteAdDialog
