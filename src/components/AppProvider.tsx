@@ -17,6 +17,12 @@ import { GalleryImageItem } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
 /* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
+const GEMINI_API_KEY_STORAGE_KEY = "mumin.gemini.apiKey";
+
+/* ------------------------------------------------------------------ */
 /*  Shape                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -24,6 +30,10 @@ interface AppContextValue {
   // Auth
   user: User | null;
   userLoading: boolean;
+
+  // Gemini API Key (stored in localStorage)
+  geminiApiKey: string;
+  setGeminiApiKey: (key: string) => void;
 
   // Settings
   russianInstructions: string;
@@ -61,6 +71,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Auth state
   const [user, setUser] = useState<User | null>(null);
   const [userLoading, setUserLoading] = useState(true);
+
+  // Gemini API Key (persisted in localStorage)
+  const [geminiApiKey, setGeminiApiKeyState] = useState("");
+
+  const setGeminiApiKey = useCallback((key: string) => {
+    setGeminiApiKeyState(key);
+    if (typeof window !== "undefined") {
+      if (key) {
+        localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, key);
+      } else {
+        localStorage.removeItem(GEMINI_API_KEY_STORAGE_KEY);
+      }
+    }
+  }, []);
+
+  // Load API key from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY);
+      if (stored) setGeminiApiKeyState(stored);
+    }
+  }, []);
 
   // Settings state
   const [russianInstructions, setRussianInstructions] = useState(DEFAULT_RUSSIAN_INSTRUCTIONS);
@@ -141,6 +173,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       userLoading,
+      geminiApiKey,
+      setGeminiApiKey,
       russianInstructions,
       globalImageInstructions,
       setRussianInstructions,
@@ -160,6 +194,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [
       user,
       userLoading,
+      geminiApiKey,
+      setGeminiApiKey,
       russianInstructions,
       globalImageInstructions,
       settingsLoaded,

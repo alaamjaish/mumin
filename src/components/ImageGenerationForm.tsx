@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { StyleSelector } from "./StyleSelector";
+import { useAppContext } from "./AppProvider";
+import { generateImagesForStyles } from "@/lib/client-image-gen";
+import { AD_STYLES } from "@/lib/styles";
 
 const MAX_TOTAL_IMAGES_PER_REQUEST = 30;
-const REQUEST_TIMEOUT_MS = 180_000;
-const NETWORK_RETRY_COUNT = 1;
 
 interface Props {
   russianText: string;
@@ -18,46 +19,6 @@ interface Props {
   onImagesGenerated: (images: { style: string; url: string }[]) => void;
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function postGenerateImages(payload: {
-  russian_text: string;
-  styles: string[];
-  count_per_style: number;
-  visual_instructions: string;
-}) {
-  for (let attempt = 0; attempt <= NETWORK_RETRY_COUNT; attempt += 1) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
-    try {
-      const res = await fetch("/api/generate-images", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      return res;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      const isAbort = error instanceof DOMException && error.name === "AbortError";
-      const isNetwork = error instanceof TypeError || isAbort;
-      const hasRetry = attempt < NETWORK_RETRY_COUNT;
-
-      if (!isNetwork || !hasRetry) {
-        throw error;
-      }
-
-      await sleep(1000 * (attempt + 1));
-    }
-  }
-
-  throw new Error("Failed to call image generation API");
-}
-
 export function ImageGenerationForm({
   russianText,
   adId,
@@ -68,6 +29,7 @@ export function ImageGenerationForm({
   onOverrideChange,
   onImagesGenerated,
 }: Props) {
+  const { geminiApiKey } = useAppContext();
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [countPerStyle, setCountPerStyle] = useState(2);
   const [loading, setLoading] = useState(false);
@@ -91,6 +53,11 @@ export function ImageGenerationForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!geminiApiKey) {
+      setError("أدخل مفتاح Gemini API في الإعدادات أولاً ⚙️");
+      return;
+    }
+
     if (selectedStyles.length === 0) {
       setError("Pick at least one style.");
       return;
@@ -109,29 +76,36 @@ export function ImageGenerationForm({
 
     setLoading(true);
     setError("");
-    setProgress("Generating images...");
+    setProgress(`Generating ${totalRequested} images across ${selectedStyles.length} styles...`);
 
     try {
-      const res = await postGenerateImages({
-        russian_text: russianText,
-        styles: selectedStyles,
-        count_per_style: normalizedCount,
-        visual_instructions: resolvedInstructions,
-      });
+      const { images, styleErrors } = await generateImagesForStyles(
+        geminiApiKey,
+        russianText,
+        selectedStyles,
+        normalizedCount,
+        resolvedInstructions,
+      );
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Image generation failed.");
+      if (images.length === 0) {
+        const errorMsgs = styleErrors.map((e) => {
+          const s = AD_STYLES.find((st) => st.id === e.style);
+          return `${s?.name || e.style}: ${e.message}`;
+        });
+        throw new Error(`Failed to generate any images.\n${errorMsgs.join("\n")}`);
       }
 
-      const data = await res.json();
-      onImagesGenerated(data.images);
+      onImagesGenerated(images);
+
+      if (styleErrors.length > 0) {
+        const partialErrors = styleErrors.map((e) => {
+          const s = AD_STYLES.find((st) => st.id === e.style);
+          return `${s?.name || e.style}: ${e.message}`;
+        });
+        setError(`Some styles failed:\n${partialErrors.join("\n")}`);
+      }
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        setError("Image generation timed out. Try fewer images per request.");
-      } else {
-        setError(err instanceof Error ? err.message : "Unexpected error.");
-      }
+      setError(err instanceof Error ? err.message : "Unexpected error.");
     } finally {
       setLoading(false);
       setProgress("");
@@ -229,9 +203,23 @@ export function ImageGenerationForm({
         )}
       </div>
 
-      {error && (
+      {/* Missing API key warning */}
+      {!geminiApiKey && (
         <div
           className="animate-scale-in rounded-lg px-4 py-3 text-sm"
+          style={{
+            background: "rgba(217,155,51,0.08)",
+            border: "1px solid rgba(217,155,51,0.2)",
+            color: "var(--gray-700)",
+          }}
+        >
+          ⚠️ لم يتم إدخال مفتاح Gemini API — افتح الإعدادات ⚙️ وأدخل المفتاح أولاً
+        </div>
+      )}
+
+      {error && (
+        <div
+          className="animate-scale-in rounded-lg px-4 py-3 text-sm whitespace-pre-wrap"
           style={{
             background: "rgba(217,79,51,0.06)",
             border: "1px solid rgba(217,79,51,0.12)",
@@ -244,7 +232,7 @@ export function ImageGenerationForm({
 
       <button
         type="submit"
-        disabled={loading || selectedStyles.length === 0}
+        disabled={loading || selectedStyles.length === 0 || !geminiApiKey}
         className="btn-gold w-full py-3.5 text-sm"
       >
         <span className="flex items-center justify-center gap-2.5">

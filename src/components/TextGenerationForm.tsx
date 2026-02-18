@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { TextGenerationInput, TextGenerationOutput } from "@/types";
+import { useAppContext } from "./AppProvider";
+import { generateRussianAdText } from "@/lib/client-text-gen";
 
 interface Props {
   instructions: string;
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export function TextGenerationForm({ instructions, adId, initialInput, onGenerated }: Props) {
+  const { geminiApiKey } = useAppContext();
   const [hook, setHook] = useState(initialInput?.hook ?? "");
   const [offer, setOffer] = useState(initialInput?.offer ?? "");
   const [cta, setCta] = useState(initialInput?.cta ?? "");
@@ -22,22 +25,23 @@ export function TextGenerationForm({ instructions, adId, initialInput, onGenerat
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!geminiApiKey) {
+      setError("أدخل مفتاح Gemini API في الإعدادات أولاً ⚙️");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const res = await fetch("/api/generate-text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hook, offer, cta, instructions }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "حدث خطأ في توليد النص");
-      }
-
-      const data = await res.json();
+      const data = await generateRussianAdText(
+        geminiApiKey,
+        hook,
+        offer,
+        cta,
+        instructions,
+      );
       onGenerated(data, { hook, offer, cta });
     } catch (err) {
       setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع");
@@ -116,6 +120,20 @@ export function TextGenerationForm({ instructions, adId, initialInput, onGenerat
         </div>
       ))}
 
+      {/* Missing API key warning */}
+      {!geminiApiKey && (
+        <div
+          className="animate-scale-in rounded-lg px-4 py-3 text-sm"
+          style={{
+            background: "rgba(217,155,51,0.08)",
+            border: "1px solid rgba(217,155,51,0.2)",
+            color: "var(--gray-700)",
+          }}
+        >
+          ⚠️ لم يتم إدخال مفتاح Gemini API — افتح الإعدادات ⚙️ وأدخل المفتاح أولاً
+        </div>
+      )}
+
       {/* Error */}
       {error && (
         <div
@@ -131,7 +149,7 @@ export function TextGenerationForm({ instructions, adId, initialInput, onGenerat
       )}
 
       {/* Submit */}
-      <button type="submit" disabled={loading} className="btn-gold w-full py-3.5 text-sm">
+      <button type="submit" disabled={loading || !geminiApiKey} className="btn-gold w-full py-3.5 text-sm">
         <span className="flex items-center justify-center gap-2.5">
           {loading ? (
             <>
