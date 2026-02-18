@@ -1,17 +1,58 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { StyleSelector } from "./StyleSelector";
+
+const MAX_TOTAL_IMAGES_PER_REQUEST = 6;
+const REQUEST_TIMEOUT_MS = 180_000;
+const NETWORK_RETRY_COUNT = 1;
 
 interface Props {
   russianText: string;
   onImagesGenerated: (images: { style: string; url: string }[]) => void;
 }
 
-export function ImageGenerationForm({
-  russianText,
-  onImagesGenerated,
-}: Props) {
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function postGenerateImages(payload: {
+  russian_text: string;
+  styles: string[];
+  count_per_style: number;
+  visual_instructions: string;
+}) {
+  for (let attempt = 0; attempt <= NETWORK_RETRY_COUNT; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      const res = await fetch("/api/generate-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return res;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      const isAbort = error instanceof DOMException && error.name === "AbortError";
+      const isNetwork = error instanceof TypeError || isAbort;
+      const hasRetry = attempt < NETWORK_RETRY_COUNT;
+
+      if (!isNetwork || !hasRetry) {
+        throw error;
+      }
+
+      await sleep(1000 * (attempt + 1));
+    }
+  }
+
+  throw new Error("Failed to call image generation API");
+}
+
+export function ImageGenerationForm({ russianText, onImagesGenerated }: Props) {
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [countPerStyle, setCountPerStyle] = useState(2);
   const [visualInstructions, setVisualInstructions] = useState("");
@@ -21,44 +62,54 @@ export function ImageGenerationForm({
 
   function toggleStyle(styleId: string) {
     setSelectedStyles((prev) =>
-      prev.includes(styleId)
-        ? prev.filter((s) => s !== styleId)
-        : [...prev, styleId]
+      prev.includes(styleId) ? prev.filter((s) => s !== styleId) : [...prev, styleId]
     );
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     if (selectedStyles.length === 0) {
-      setError("اختر ستايل واحد على الأقل");
+      setError("Pick at least one style.");
+      return;
+    }
+
+    const normalizedCount = Math.min(Math.max(Math.floor(countPerStyle) || 1, 1), 10);
+    if (normalizedCount !== countPerStyle) {
+      setCountPerStyle(normalizedCount);
+    }
+
+    const totalRequested = selectedStyles.length * normalizedCount;
+    if (totalRequested > MAX_TOTAL_IMAGES_PER_REQUEST) {
+      setError(`Too many images in one request (${totalRequested}). Max is ${MAX_TOTAL_IMAGES_PER_REQUEST}.`);
       return;
     }
 
     setLoading(true);
     setError("");
-    setProgress("جاري توليد الصور...");
+    setProgress("Generating images...");
 
     try {
-      const res = await fetch("/api/generate-images", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          russian_text: russianText,
-          styles: selectedStyles,
-          count_per_style: countPerStyle,
-          visual_instructions: visualInstructions,
-        }),
+      const res = await postGenerateImages({
+        russian_text: russianText,
+        styles: selectedStyles,
+        count_per_style: normalizedCount,
+        visual_instructions: visualInstructions,
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "حدث خطأ في توليد الصور");
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Image generation failed.");
       }
 
       const data = await res.json();
       onImagesGenerated(data.images);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "حدث خطأ غير متوقع");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("Image generation timed out. Try fewer images per request.");
+      } else {
+        setError(err instanceof Error ? err.message : "Unexpected error.");
+      }
     } finally {
       setLoading(false);
       setProgress("");
@@ -67,7 +118,6 @@ export function ImageGenerationForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
-      {/* Approved Russian text display */}
       <div
         className="rounded-xl p-4 animate-fade-in"
         style={{
@@ -76,10 +126,7 @@ export function ImageGenerationForm({
         }}
       >
         <div className="mb-2 flex items-center gap-2">
-          <div
-            className="h-1.5 w-1.5 rounded-full"
-            style={{ background: "var(--teal-400)" }}
-          />
+          <div className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--teal-400)" }} />
           <p
             className="text-[10px] font-bold tracking-[0.12em] uppercase"
             style={{
@@ -87,64 +134,54 @@ export function ImageGenerationForm({
               fontFamily: "var(--font-body)",
             }}
           >
-            النص الروسي المعتمد
+            Approved Russian Copy
           </p>
         </div>
-        <p
-          dir="ltr"
-          className="text-sm leading-relaxed"
-          style={{ color: "var(--gray-700)" }}
-        >
+        <p dir="ltr" className="text-sm leading-relaxed" style={{ color: "var(--gray-700)" }}>
           {russianText}
         </p>
       </div>
 
-      {/* Style selector */}
-      <StyleSelector
-        selectedStyles={selectedStyles}
-        onToggle={toggleStyle}
-      />
+      <StyleSelector selectedStyles={selectedStyles} onToggle={toggleStyle} />
 
-      {/* Count per style */}
       <div className="animate-fade-in-up" style={{ animationDelay: "0.1s", opacity: 0 }}>
-        <label
-          className="mb-2 block text-sm font-700"
-          style={{ color: "var(--gray-800)" }}
-        >
-          عدد الصور لكل ستايل
+        <label className="mb-2 block text-sm font-700" style={{ color: "var(--gray-800)" }}>
+          Images per style
         </label>
         <input
           type="number"
           min={1}
           max={10}
           value={countPerStyle}
-          onChange={(e) => setCountPerStyle(Number(e.target.value))}
+          onChange={(e) => {
+            const parsed = Number(e.target.value);
+            if (!Number.isFinite(parsed)) {
+              setCountPerStyle(1);
+              return;
+            }
+            setCountPerStyle(Math.min(Math.max(Math.floor(parsed), 1), 10));
+          }}
           className="input-luxury w-28 px-4 py-2.5 text-center text-sm"
         />
       </div>
 
-      {/* Visual instructions */}
       <div className="animate-fade-in-up" style={{ animationDelay: "0.15s", opacity: 0 }}>
-        <label
-          className="mb-2 block text-sm font-700"
-          style={{ color: "var(--gray-800)" }}
-        >
-          تعليمات بصرية إضافية
+        <label className="mb-2 block text-sm font-700" style={{ color: "var(--gray-800)" }}>
+          Extra visual instructions
         </label>
         <textarea
           value={visualInstructions}
           onChange={(e) => setVisualInstructions(e.target.value)}
-          placeholder="مثال: أضف ستيكرات كتب عربية، خلفية زرقاء غامقة، شخص يدرس، أضف لوغو..."
+          placeholder="Example: add Arabic books stickers, dark blue background, studying person, add logo..."
           rows={4}
-          dir="rtl"
+          dir="ltr"
           className="input-luxury w-full px-4 py-3 text-sm leading-relaxed"
         />
         <p className="mt-1.5 text-xs" style={{ color: "var(--gray-400)" }}>
-          اكتب أي تعليمات إضافية عن شكل الصورة — ستيكرات، ألوان، عناصر، خلفيات...
+          Add any art direction notes about colors, elements, background, or composition.
         </p>
       </div>
 
-      {/* Error */}
       {error && (
         <div
           className="animate-scale-in rounded-lg px-4 py-3 text-sm"
@@ -158,7 +195,6 @@ export function ImageGenerationForm({
         </div>
       )}
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={loading || selectedStyles.length === 0}
@@ -176,10 +212,13 @@ export function ImageGenerationForm({
           ) : (
             <>
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v13.5A1.5 1.5 0 003.75 21z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v13.5A1.5 1.5 0 003.75 21z"
+                />
               </svg>
-              ولّد الصور ({selectedStyles.length} ستايل × {countPerStyle} صورة ={" "}
-              {selectedStyles.length * countPerStyle} صورة)
+              Generate Images ({selectedStyles.length} styles x {countPerStyle} = {selectedStyles.length * countPerStyle})
             </>
           )}
         </span>
