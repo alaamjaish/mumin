@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateRussianAdText } from "@/lib/gemini";
-import { DEFAULT_RUSSIAN_INSTRUCTIONS } from "@/lib/prompts";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,8 +12,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const finalInstructions = instructions?.trim() || DEFAULT_RUSSIAN_INSTRUCTIONS;
-    const result = await generateRussianAdText(hook, offer, cta, finalInstructions);
+    if (!instructions?.trim()) {
+      return NextResponse.json(
+        { error: "التعليمات مطلوبة" },
+        { status: 400 }
+      );
+    }
+
+    const result = await generateRussianAdText(hook, offer, cta, instructions);
 
     return NextResponse.json(result);
   } catch (error) {

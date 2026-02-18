@@ -25,7 +25,6 @@ export default function GalleryPage() {
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
-    // Skip fetch if gallery was already loaded and hasn't been invalidated
     if (ctx.galleryLoaded) return;
 
     async function loadGallery() {
@@ -175,34 +174,22 @@ export default function GalleryPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-3 mb-1.5">
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold"
-              style={{
-                background: "var(--coral-50)",
-                color: "var(--coral-500)",
-                fontFamily: "var(--font-body)",
-              }}
-            >
-              03
-            </div>
-            <h1 className="text-2xl font-bold" style={{ color: "var(--gray-900)" }}>
-              المعرض
-            </h1>
-          </div>
-          <p className="text-sm mr-12" style={{ color: "var(--gray-500)" }}>
+          <h1 className="text-2xl font-bold mb-1.5" style={{ color: "var(--gray-900)" }}>
+            المعرض
+          </h1>
+          <p className="text-sm" style={{ color: "var(--gray-500)" }}>
             جميع الصور المحلية والسحابية معروضة هنا
           </p>
         </div>
         <Link
-          href="/images"
+          href="/"
           className="btn-ghost rounded-xl px-5 py-2.5 text-sm"
         >
           <span className="flex items-center gap-2">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
             </svg>
-            ولّد صور إضافية
+            العودة للإعلانات
           </span>
         </Link>
       </div>

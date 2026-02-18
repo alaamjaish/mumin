@@ -63,3 +63,39 @@ export interface GalleryImageItem {
   cloudStoragePath?: string | null;
   generationId?: string | null;
 }
+
+export interface Ad {
+  id: string;
+  user_id: string;
+  title: string;
+  image_instructions: string | null;
+  override_global_image_instructions: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdCopyBatch {
+  id: string;
+  ad_id: string;
+  user_id: string;
+  hook_ar: string;
+  offer_ar: string;
+  cta_ar: string;
+  copies: TextGenerationOutput[];
+  is_approved_batch: boolean;
+  approved_copy_index: number | null;
+  created_at: string;
+}
+
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  russian_instructions: string | null;
+  global_image_instructions: string | null;
+  updated_at: string;
+}
+
+export interface ApprovedCopy {
+  batch_id: string;
+  copy: TextGenerationOutput;
+}

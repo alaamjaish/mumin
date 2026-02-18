@@ -4,40 +4,34 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
-  type Dispatch,
   type ReactNode,
-  type SetStateAction,
 } from "react";
-import {
-  ApprovedTextContext,
-  GalleryImageItem,
-  TextGenerationInput,
-  TextGenerationOutput,
-} from "@/types";
+import { createClient } from "@/lib/supabase/client";
+import { fetchUserSettings } from "@/lib/supabase/queries";
+import { DEFAULT_RUSSIAN_INSTRUCTIONS, DEFAULT_GLOBAL_IMAGE_INSTRUCTIONS } from "@/lib/prompts";
+import { GalleryImageItem } from "@/types";
+import type { User } from "@supabase/supabase-js";
 
 /* ------------------------------------------------------------------ */
-/*  Shape                                                             */
+/*  Shape                                                              */
 /* ------------------------------------------------------------------ */
 
 interface AppContextValue {
-  // Generate page
-  generateResults: TextGenerationOutput[];
-  generateInput: TextGenerationInput | null;
-  setGenerateResults: (r: TextGenerationOutput[]) => void;
-  setGenerateInput: (i: TextGenerationInput | null) => void;
+  // Auth
+  user: User | null;
+  userLoading: boolean;
 
-  // Images page
-  approvedContext: ApprovedTextContext | null;
-  russianText: TextGenerationOutput | null;
-  draftImages: GalleryImageItem[];
-  setApprovedContext: (c: ApprovedTextContext | null) => void;
-  setRussianText: (t: TextGenerationOutput | null) => void;
-  setDraftImages: Dispatch<SetStateAction<GalleryImageItem[]>>;
-  imagesHydrated: boolean;
-  markImagesHydrated: () => void;
+  // Settings
+  russianInstructions: string;
+  globalImageInstructions: string;
+  setRussianInstructions: (v: string) => void;
+  setGlobalImageInstructions: (v: string) => void;
+  settingsLoaded: boolean;
+  reloadSettings: () => Promise<void>;
 
   // Gallery page
   galleryImages: GalleryImageItem[];
@@ -60,20 +54,18 @@ export function useAppContext() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Provider                                                          */
+/*  Provider                                                           */
 /* ------------------------------------------------------------------ */
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  // Generate page state
-  const [generateResults, setGenerateResults] = useState<TextGenerationOutput[]>([]);
-  const [generateInput, setGenerateInput] = useState<TextGenerationInput | null>(null);
+  // Auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
 
-  // Images page state
-  const [approvedContext, setApprovedContext] = useState<ApprovedTextContext | null>(null);
-  const [russianText, setRussianText] = useState<TextGenerationOutput | null>(null);
-  const [draftImages, setDraftImages] = useState<GalleryImageItem[]>([]);
-  const [imagesHydrated, setImagesHydrated] = useState(false);
-  const markImagesHydrated = useCallback(() => setImagesHydrated(true), []);
+  // Settings state
+  const [russianInstructions, setRussianInstructions] = useState(DEFAULT_RUSSIAN_INSTRUCTIONS);
+  const [globalImageInstructions, setGlobalImageInstructions] = useState(DEFAULT_GLOBAL_IMAGE_INSTRUCTIONS);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Gallery page state
   const [galleryImages, setGalleryImages] = useState<GalleryImageItem[]>([]);
@@ -92,20 +84,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setGalleryLoaded(false);
   }, []);
 
+  // Load auth state — only update user when the ID actually changes
+  const userIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      const newId = u?.id ?? null;
+      if (newId !== userIdRef.current) {
+        userIdRef.current = newId;
+        setUser(u ?? null);
+      }
+      setUserLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const newId = session?.user?.id ?? null;
+      // Only update user state on actual sign-in/sign-out, not token refreshes
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || newId !== userIdRef.current) {
+        userIdRef.current = newId;
+        setUser(session?.user ?? null);
+      }
+      setUserLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Load settings when user is available
+  const loadSettings = useCallback(async () => {
+    if (!user) return;
+    try {
+      const settings = await fetchUserSettings();
+      if (settings) {
+        if (settings.russian_instructions != null) {
+          setRussianInstructions(settings.russian_instructions);
+        }
+        if (settings.global_image_instructions != null) {
+          setGlobalImageInstructions(settings.global_image_instructions);
+        }
+      }
+      setSettingsLoaded(true);
+    } catch {
+      setSettingsLoaded(true);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadSettings();
+    }
+  }, [user, loadSettings]);
+
   const value = useMemo<AppContextValue>(
     () => ({
-      generateResults,
-      generateInput,
-      setGenerateResults,
-      setGenerateInput,
-      approvedContext,
-      russianText,
-      draftImages,
-      setApprovedContext,
-      setRussianText,
-      setDraftImages,
-      imagesHydrated,
-      markImagesHydrated,
+      user,
+      userLoading,
+      russianInstructions,
+      globalImageInstructions,
+      setRussianInstructions,
+      setGlobalImageInstructions,
+      settingsLoaded,
+      reloadSettings: loadSettings,
       galleryImages,
       galleryLoading,
       galleryError,
@@ -117,13 +158,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       invalidateGallery,
     }),
     [
-      generateResults,
-      generateInput,
-      approvedContext,
-      russianText,
-      draftImages,
-      imagesHydrated,
-      markImagesHydrated,
+      user,
+      userLoading,
+      russianInstructions,
+      globalImageInstructions,
+      settingsLoaded,
+      loadSettings,
       galleryImages,
       galleryLoading,
       galleryError,

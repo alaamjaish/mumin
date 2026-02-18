@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { StyleSelector } from "./StyleSelector";
@@ -9,6 +9,12 @@ const NETWORK_RETRY_COUNT = 1;
 
 interface Props {
   russianText: string;
+  adId: string;
+  imageInstructions: string;
+  overrideGlobal: boolean;
+  globalImageInstructions: string;
+  onImageInstructionsChange: (instructions: string) => void;
+  onOverrideChange: (override: boolean) => void;
   onImagesGenerated: (images: { style: string; url: string }[]) => void;
 }
 
@@ -52,13 +58,29 @@ async function postGenerateImages(payload: {
   throw new Error("Failed to call image generation API");
 }
 
-export function ImageGenerationForm({ russianText, onImagesGenerated }: Props) {
+export function ImageGenerationForm({
+  russianText,
+  adId,
+  imageInstructions,
+  overrideGlobal,
+  globalImageInstructions,
+  onImageInstructionsChange,
+  onOverrideChange,
+  onImagesGenerated,
+}: Props) {
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [countPerStyle, setCountPerStyle] = useState(2);
-  const [visualInstructions, setVisualInstructions] = useState("");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
+
+  // keep adId in scope
+  void adId;
+
+  // Resolve instructions
+  const resolvedInstructions = overrideGlobal
+    ? imageInstructions
+    : [globalImageInstructions, imageInstructions].filter(Boolean).join("\n\n");
 
   function toggleStyle(styleId: string) {
     setSelectedStyles((prev) =>
@@ -94,7 +116,7 @@ export function ImageGenerationForm({ russianText, onImagesGenerated }: Props) {
         russian_text: russianText,
         styles: selectedStyles,
         count_per_style: normalizedCount,
-        visual_instructions: visualInstructions,
+        visual_instructions: resolvedInstructions,
       });
 
       if (!res.ok) {
@@ -165,21 +187,46 @@ export function ImageGenerationForm({ russianText, onImagesGenerated }: Props) {
         />
       </div>
 
+      {/* Per-ad image instructions */}
       <div className="animate-fade-in-up" style={{ animationDelay: "0.15s", opacity: 0 }}>
-        <label className="mb-2 block text-sm font-700" style={{ color: "var(--gray-800)" }}>
-          Extra visual instructions
-        </label>
+        <div className="mb-2 flex items-center justify-between">
+          <label className="text-sm font-700" style={{ color: "var(--gray-800)" }}>
+            تعليمات صور هذا الإعلان
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs" style={{ color: "var(--gray-500)" }}>
+              تجاوز التعليمات العامة
+            </span>
+            <div
+              className="relative h-5 w-9 rounded-full transition-colors duration-200 cursor-pointer"
+              style={{ background: overrideGlobal ? "var(--coral-400)" : "var(--gray-200)" }}
+              onClick={() => onOverrideChange(!overrideGlobal)}
+            >
+              <div
+                className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all duration-200"
+                style={{ left: overrideGlobal ? "18px" : "2px" }}
+              />
+            </div>
+          </label>
+        </div>
         <textarea
-          value={visualInstructions}
-          onChange={(e) => setVisualInstructions(e.target.value)}
-          placeholder="Example: add Arabic books stickers, dark blue background, studying person, add logo..."
+          value={imageInstructions}
+          onChange={(e) => onImageInstructionsChange(e.target.value)}
+          placeholder="Example: add Arabic books stickers, dark blue background, studying person..."
           rows={4}
           dir="ltr"
           className="input-luxury w-full px-4 py-3 text-sm leading-relaxed"
         />
-        <p className="mt-1.5 text-xs" style={{ color: "var(--gray-400)" }}>
-          Add any art direction notes about colors, elements, background, or composition.
-        </p>
+        {!overrideGlobal && globalImageInstructions && (
+          <p className="mt-1.5 text-xs" style={{ color: "var(--gray-400)" }}>
+            سيتم دمج هذه التعليمات مع التعليمات العامة
+          </p>
+        )}
+        {overrideGlobal && (
+          <p className="mt-1.5 text-xs" style={{ color: "var(--coral-400)" }}>
+            التعليمات العامة مُتجاوَزة — تعليمات هذا الإعلان فقط ستُستخدم
+          </p>
+        )}
       </div>
 
       {error && (

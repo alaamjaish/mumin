@@ -2,20 +2,23 @@
 
 import { useState } from "react";
 import { TextGenerationInput, TextGenerationOutput } from "@/types";
-import { DEFAULT_RUSSIAN_INSTRUCTIONS } from "@/lib/prompts";
 
 interface Props {
+  instructions: string;
+  adId: string;
+  initialInput?: TextGenerationInput | null;
   onGenerated: (results: TextGenerationOutput[], input: TextGenerationInput) => void;
 }
 
-export function TextGenerationForm({ onGenerated }: Props) {
-  const [hook, setHook] = useState("");
-  const [offer, setOffer] = useState("");
-  const [cta, setCta] = useState("");
-  const [instructions, setInstructions] = useState(DEFAULT_RUSSIAN_INSTRUCTIONS);
-  const [showInstructions, setShowInstructions] = useState(false);
+export function TextGenerationForm({ instructions, adId, initialInput, onGenerated }: Props) {
+  const [hook, setHook] = useState(initialInput?.hook ?? "");
+  const [offer, setOffer] = useState(initialInput?.offer ?? "");
+  const [cta, setCta] = useState(initialInput?.cta ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // keep adId in scope to suppress unused warning
+  void adId;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -112,55 +115,6 @@ export function TextGenerationForm({ onGenerated }: Props) {
           />
         </div>
       ))}
-
-      {/* Instructions toggle */}
-      <div className="animate-fade-in-up" style={{ animationDelay: "0.24s", opacity: 0 }}>
-        <button
-          type="button"
-          onClick={() => setShowInstructions(!showInstructions)}
-          className="group flex items-center gap-2 text-sm font-500 transition-colors duration-200"
-          style={{ color: "var(--gray-500)" }}
-        >
-          <svg
-            className="h-3.5 w-3.5 transition-transform duration-200"
-            style={{
-              transform: showInstructions ? "rotate(90deg)" : "rotate(0)",
-              color: "var(--coral-400)",
-            }}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="group-hover:text-[var(--gray-700)] transition-colors">
-            تعليمات التوليد (البرومبت)
-          </span>
-        </button>
-
-        {showInstructions && (
-          <div className="mt-3 animate-scale-in">
-            <textarea
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              rows={12}
-              dir="rtl"
-              className="input-luxury w-full px-4 py-3 text-xs leading-relaxed"
-              style={{ fontFamily: "var(--font-mono)" }}
-            />
-            <button
-              type="button"
-              onClick={() => setInstructions(DEFAULT_RUSSIAN_INSTRUCTIONS)}
-              className="mt-2 text-xs font-500 transition-colors duration-200"
-              style={{ color: "var(--gray-400)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--coral-400)")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gray-400)")}
-            >
-              استعادة التعليمات الافتراضية
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Error */}
       {error && (

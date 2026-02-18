@@ -5,11 +5,12 @@ import { TextGenerationOutput } from "@/types";
 
 interface Props {
   results: TextGenerationOutput[];
-  onApprove: (result: TextGenerationOutput) => void;
+  approvedIndex?: number | null;
+  onApprove: (result: TextGenerationOutput, index: number) => void;
 }
 
-export function RussianTextOutput({ results, onApprove }: Props) {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+export function RussianTextOutput({ results, approvedIndex, onApprove }: Props) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(approvedIndex ?? null);
   const [editedResults, setEditedResults] = useState(results);
 
   function updateField(
@@ -57,6 +58,7 @@ export function RussianTextOutput({ results, onApprove }: Props) {
       <div className="flex gap-4 overflow-x-auto pb-4 snap-scroll" style={{ scrollbarWidth: "thin" }}>
         {editedResults.map((result, index) => {
           const isSelected = selectedIndex === index;
+          const isApproved = approvedIndex === index;
           return (
             <div
               key={index}
@@ -65,11 +67,21 @@ export function RussianTextOutput({ results, onApprove }: Props) {
               style={{
                 animationDelay: `${index * 0.07}s`,
                 opacity: 0,
-                background: isSelected ? "var(--coral-50)" : "var(--bg-surface)",
-                border: isSelected
-                  ? "2px solid var(--coral-400)"
-                  : "2px solid var(--gray-200)",
-                boxShadow: isSelected ? "var(--shadow-coral)" : "var(--shadow-sm)",
+                background: isApproved
+                  ? "rgba(58,155,122,0.06)"
+                  : isSelected
+                    ? "var(--coral-50)"
+                    : "var(--bg-surface)",
+                border: isApproved
+                  ? "2px solid var(--teal-400)"
+                  : isSelected
+                    ? "2px solid var(--coral-400)"
+                    : "2px solid var(--gray-200)",
+                boxShadow: isApproved
+                  ? "var(--shadow-teal)"
+                  : isSelected
+                    ? "var(--shadow-coral)"
+                    : "var(--shadow-sm)",
               }}
             >
               {/* Card header */}
@@ -77,14 +89,24 @@ export function RussianTextOutput({ results, onApprove }: Props) {
                 <span
                   className="flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold transition-all"
                   style={{
-                    background: isSelected ? "var(--coral-400)" : "var(--gray-100)",
-                    color: isSelected ? "#FFF" : "var(--gray-500)",
+                    background: isApproved
+                      ? "var(--teal-400)"
+                      : isSelected
+                        ? "var(--coral-400)"
+                        : "var(--gray-100)",
+                    color: isApproved || isSelected ? "#FFF" : "var(--gray-500)",
                     fontFamily: "var(--font-body)",
                   }}
                 >
-                  {index + 1}
+                  {isApproved ? (
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="#FFF" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    index + 1
+                  )}
                 </span>
-                {isSelected && (
+                {isSelected && !isApproved && (
                   <div
                     className="flex h-6 w-6 items-center justify-center rounded-full animate-scale-in"
                     style={{ background: "var(--coral-400)" }}
@@ -93,6 +115,14 @@ export function RussianTextOutput({ results, onApprove }: Props) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
+                )}
+                {isApproved && (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-700"
+                    style={{ background: "var(--teal-400)", color: "#FFF" }}
+                  >
+                    معتمدة
+                  </span>
                 )}
               </div>
 
@@ -103,7 +133,11 @@ export function RussianTextOutput({ results, onApprove }: Props) {
                     <label
                       className="mb-1 block text-[10px] font-bold tracking-[0.12em] uppercase"
                       style={{
-                        color: isSelected ? "var(--coral-500)" : "var(--gray-400)",
+                        color: isApproved
+                          ? "var(--teal-500)"
+                          : isSelected
+                            ? "var(--coral-500)"
+                            : "var(--gray-400)",
                         fontFamily: "var(--font-body)",
                       }}
                     >
@@ -139,7 +173,7 @@ export function RussianTextOutput({ results, onApprove }: Props) {
         <button
           onClick={() => {
             if (selectedIndex !== null) {
-              onApprove(editedResults[selectedIndex]);
+              onApprove(editedResults[selectedIndex], selectedIndex);
             }
           }}
           disabled={selectedIndex === null}
@@ -158,10 +192,10 @@ export function RussianTextOutput({ results, onApprove }: Props) {
           <span className="flex items-center justify-center gap-2">
             {selectedIndex !== null ? (
               <>
-                اعتمد النسخة #{selectedIndex + 1} وانتقل لتوليد الصور
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
+                اعتماد هذه النسخة
               </>
             ) : (
               "اختر نسخة أولاً"

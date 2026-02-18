@@ -9,13 +9,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      setSuccess("تم إنشاء الحساب! تحقق من بريدك الإلكتروني لتأكيد الحساب.");
+      setLoading(false);
+      return;
+    }
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -28,7 +48,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/generate");
+    router.push("/");
   }
 
   return (
@@ -48,16 +68,16 @@ export default function LoginPage() {
             className="mb-1 text-2xl font-bold"
             style={{ color: "var(--gray-900)" }}
           >
-            مرحباً بك في مؤمن
+            {isSignUp ? "إنشاء حساب جديد" : "مرحباً بك في مؤمن"}
           </h1>
           <p className="text-sm" style={{ color: "var(--gray-500)" }}>
-            سجّل دخولك للبدء في توليد الإعلانات
+            {isSignUp ? "أنشئ حسابك للبدء في توليد الإعلانات" : "سجّل دخولك للبدء في توليد الإعلانات"}
           </p>
         </div>
 
         {/* Card */}
         <div className="glass-card p-7">
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label
                 className="mb-1.5 block text-sm font-500"
@@ -91,6 +111,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 dir="ltr"
                 required
+                minLength={6}
               />
             </div>
 
@@ -107,6 +128,19 @@ export default function LoginPage() {
               </div>
             )}
 
+            {success && (
+              <div
+                className="animate-scale-in rounded-lg px-3.5 py-2.5 text-sm"
+                style={{
+                  background: "rgba(58,155,122,0.06)",
+                  border: "1px solid rgba(58,155,122,0.15)",
+                  color: "var(--teal-500)",
+                }}
+              >
+                {success}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -119,14 +153,31 @@ export default function LoginPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    جاري الدخول...
+                    {isSignUp ? "جاري إنشاء الحساب..." : "جاري الدخول..."}
                   </>
                 ) : (
-                  "تسجيل الدخول"
+                  isSignUp ? "إنشاء حساب" : "تسجيل الدخول"
                 )}
               </span>
             </button>
           </form>
+
+          {/* Toggle sign-up / sign-in */}
+          <div className="mt-5 text-center">
+            <button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError("");
+                setSuccess("");
+              }}
+              className="text-sm font-500 transition-colors duration-200"
+              style={{ color: "var(--gray-500)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--coral-400)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--gray-500)")}
+            >
+              {isSignUp ? "لديك حساب؟ سجّل دخولك" : "ليس لديك حساب؟ أنشئ واحداً"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
